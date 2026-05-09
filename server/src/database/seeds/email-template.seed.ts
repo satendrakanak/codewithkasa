@@ -18,7 +18,7 @@ const brandShell = ({
       </div>
       <div style="padding:30px">
         ${content}
-        <p style="font-size:12px;color:#94a3b8;margin-top:24px">{{year}} Unitus Health Academy</p>
+        <p style="font-size:12px;color:#94a3b8;margin-top:24px">{{year}} Code With Kasa</p>
       </div>
     </div>
   </div>
@@ -37,12 +37,12 @@ const button = (label: string, href: string) =>
 const templates = [
   {
     templateName: 'registration_verification_otp',
-    subject: 'Your Unitus account verification code',
+    subject: 'Your Code With Kasa account verification code',
     body: brandShell({
       eyebrow: 'Account verification',
       title: 'Hi {{name}}, confirm your email',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">Use this code to verify your Unitus account and complete your registration.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Use this code to verify your Code With Kasa account and complete your registration.</p>
         ${otpBlock}
         <p style="font-size:14px;color:#64748b">This code expires in {{expiryTime}}.</p>
       `,
@@ -50,12 +50,12 @@ const templates = [
   },
   {
     templateName: 'checkout_verification_otp',
-    subject: 'Your Unitus checkout verification code',
+    subject: 'Your Code With Kasa checkout verification code',
     body: brandShell({
       eyebrow: 'Checkout verification',
       title: 'Hi {{name}}, confirm your email',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">Use this code at checkout to verify your email, create your Unitus account, and continue your purchase.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Use this code at checkout to verify your email, create your Code With Kasa account, and continue your purchase.</p>
         ${otpBlock}
         <p style="font-size:14px;color:#64748b">This code expires in {{expiryTime}}.</p>
       `,
@@ -63,10 +63,10 @@ const templates = [
   },
   {
     templateName: 'welcome_email',
-    subject: 'Welcome to Unitus, {{name}}',
+    subject: 'Welcome to Code With Kasa, {{name}}',
     body: brandShell({
       eyebrow: 'Account ready',
-      title: 'Welcome to Unitus Health Academy',
+      title: 'Welcome to Code With Kasa',
       content: `
         <p style="font-size:16px;line-height:1.7;color:#475569">Your email <strong>{{email}}</strong> is now verified and your learner account is ready.</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
@@ -78,12 +78,12 @@ const templates = [
   },
   {
     templateName: 'verification_email',
-    subject: 'Complete your Unitus email verification',
+    subject: 'Complete your Code With Kasa email verification',
     body: brandShell({
       eyebrow: 'Legacy verification',
       title: 'Confirm your email',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">If you requested email verification from an older Unitus flow, you can still use the secure button below.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">If you requested email verification from an older Code With Kasa flow, you can still use the secure button below.</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
           <p style="margin:0;color:#475569">This link expires in {{expiryTime}}.</p>
         </div>
@@ -93,12 +93,12 @@ const templates = [
   },
   {
     templateName: 'reset_password_email',
-    subject: 'Reset your Unitus password',
+    subject: 'Reset your Code With Kasa password',
     body: brandShell({
       eyebrow: 'Password reset',
       title: 'Reset your password',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">We received a request to reset the password for your Unitus account.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">We received a request to reset the password for your Code With Kasa account.</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
           <p style="margin:0;color:#475569">If this was you, continue securely using the button below. If not, you can safely ignore this email.</p>
         </div>
@@ -108,24 +108,24 @@ const templates = [
   },
   {
     templateName: 'password_reset_success',
-    subject: 'Your Unitus password has been updated',
+    subject: 'Your Code With Kasa password has been updated',
     body: brandShell({
       eyebrow: 'Password updated',
       title: 'Your password was changed successfully',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, your Unitus password has been updated. You can now sign in with your new password.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, your Code With Kasa password has been updated. You can now sign in with your new password.</p>
         ${button('Sign in now', '{{loginUrl}}')}
       `,
     }),
   },
   {
     templateName: 'course_certificate_issued',
-    subject: 'Your Unitus certificate for {{courseTitle}} is ready',
+    subject: 'Your Code With Kasa certificate for {{courseTitle}} is ready',
     body: brandShell({
       eyebrow: 'Certificate unlocked',
       title: 'Congratulations, {{name}}!',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">You have successfully completed <strong>{{courseTitle}}</strong>. Your certificate is attached with this email and can also be downloaded from your Unitus profile.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">You have successfully completed <strong>{{courseTitle}}</strong>. Your certificate is attached with this email and can also be downloaded from your Code With Kasa profile.</p>
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:18px;margin:24px 0">
           <p style="margin:0;color:#9a3412;font-size:13px">Certificate ID</p>
           <p style="margin:6px 0 0;font-size:20px;font-weight:700;color:#111827">{{certificateNumber}}</p>
@@ -136,13 +136,112 @@ const templates = [
     }),
   },
   {
+    templateName: 'advanced_exam_passed',
+    subject: 'You passed {{examTitle}}',
+    body: brandShell({
+      eyebrow: 'Exam cleared',
+      title: 'Congratulations, {{name}}!',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">You passed <strong>{{examTitle}}</strong> for <strong>{{courseTitle}}</strong>.</p>
+        <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:18px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#047857;font-size:13px">Score</p>
+          <p style="margin:6px 0 0;font-size:24px;font-weight:800;color:#111827">{{percentage}}%</p>
+        </div>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Your certificate is now unlocked.</p>
+        ${button('View result', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'advanced_exam_failed',
+    subject: 'Your {{examTitle}} result is ready',
+    body: brandShell({
+      eyebrow: 'Exam result',
+      title: 'Your exam needs another attempt',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, your <strong>{{examTitle}}</strong> attempt for <strong>{{courseTitle}}</strong> has been graded.</p>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#9a3412;font-size:13px">Score</p>
+          <p style="margin:6px 0 0;font-size:24px;font-weight:800;color:#111827">{{percentage}}%</p>
+        </div>
+        <p style="font-size:16px;line-height:1.7;color:#475569">You can retry if attempts are available or management has approved extra attempts.</p>
+        ${button('Open exam', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'advanced_exam_submitted',
+    subject: 'Your {{examTitle}} was submitted for review',
+    body: brandShell({
+      eyebrow: 'Manual review',
+      title: 'Your exam is submitted',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, your <strong>{{examTitle}}</strong> for <strong>{{courseTitle}}</strong> has been submitted successfully.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
+          <p style="margin:0;color:#475569">Some answers need manual grading. You will see the final result after review.</p>
+        </div>
+        ${button('Open exam', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'exam_attempts_extended',
+    subject: 'Your exam attempts have been updated',
+    body: brandShell({
+      eyebrow: 'Attempts updated',
+      title: 'You can retry your exam',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, management has updated your exam access for <strong>{{courseTitle}}</strong>.</p>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:18px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#1d4ed8;font-size:13px">Extra attempts approved</p>
+          <p style="margin:6px 0 0;font-size:24px;font-weight:800;color:#111827">{{extraAttempts}}</p>
+        </div>
+        ${button('Open exam', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'course_exam_passed',
+    subject: 'You passed the final exam for {{courseTitle}}',
+    body: brandShell({
+      eyebrow: 'Exam cleared',
+      title: 'Congratulations, {{name}}!',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">You passed the final exam for <strong>{{courseTitle}}</strong>.</p>
+        <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:18px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#047857;font-size:13px">Score</p>
+          <p style="margin:6px 0 0;font-size:24px;font-weight:800;color:#111827">{{percentage}}%</p>
+        </div>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Your certificate can now be unlocked once all completion requirements are met.</p>
+        ${button('Open exam', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'course_exam_failed',
+    subject: 'Your final exam result for {{courseTitle}} is ready',
+    body: brandShell({
+      eyebrow: 'Exam result',
+      title: 'Your exam needs another attempt',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, your final exam attempt for <strong>{{courseTitle}}</strong> has been graded.</p>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:18px;margin:24px 0">
+          <p style="margin:0;color:#9a3412;font-size:13px">Score</p>
+          <p style="margin:6px 0 0;font-size:24px;font-weight:800;color:#111827">{{percentage}}%</p>
+        </div>
+        <p style="font-size:16px;line-height:1.7;color:#475569">You can retry if attempts are available or management has approved extra attempts.</p>
+        ${button('Open exam', '{{examLink}}')}
+      `,
+    }),
+  },
+  {
     templateName: 'course_purchase_success',
-    subject: 'Your Unitus course purchase is confirmed',
+    subject: 'Your Code With Kasa course purchase is confirmed',
     body: brandShell({
       eyebrow: 'Purchase confirmed',
       title: 'Thank you, {{name}}.',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">Your Unitus order #{{orderId}} for {{courseCount}} course(s) has been successfully paid. Your invoice is attached with this email.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Your Code With Kasa order #{{orderId}} for {{courseCount}} course(s) has been successfully paid. Your invoice is attached with this email.</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">{{coursesList}}</div>
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:18px;padding:18px;margin:22px 0">
           <p style="margin:0 0 8px;font-size:12px;letter-spacing:4px;text-transform:uppercase;color:#9a3412">Invoice reference</p>
@@ -172,7 +271,7 @@ const templates = [
       eyebrow: 'Payment failed',
       title: 'Your payment could not be completed',
       content: `
-        <p style="font-size:16px;line-height:1.7;color:#475569">Your Unitus payment for order #{{orderId}} did not go through. You can retry the payment using the button below.</p>
+        <p style="font-size:16px;line-height:1.7;color:#475569">Your Code With Kasa payment for order #{{orderId}} did not go through. You can retry the payment using the button below.</p>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">{{coursesList}}</div>
         <p style="font-size:18px;font-weight:700;color:#111827">Order total: {{amount}}</p>
         <div style="margin-top:24px">${button('Retry payment', '{{retryUrl}}')}</div>
@@ -204,6 +303,72 @@ const templates = [
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">{{coursesList}}</div>
         <p style="font-size:18px;font-weight:700;color:#111827">Order total: {{amount}}</p>
         <div style="margin-top:24px">${button('Continue payment', '{{retryUrl}}')}</div>
+      `,
+    }),
+  },
+  {
+    templateName: 'faculty_class_student_reminder',
+    subject: 'Reminder: {{sessionTitle}} starts soon',
+    body: brandShell({
+      eyebrow: 'Class reminder',
+      title: '{{sessionTitle}} starts soon',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, this is a {{reminderLabel}} reminder for your upcoming class in <strong>{{courseTitle}}</strong>.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
+          <p style="margin:0 0 8px;color:#111827;font-weight:700">{{batchName}}</p>
+          <p style="margin:0;color:#475569">Class time: {{startsAt}}</p>
+          <p style="margin:8px 0 0;color:#475569">Location: {{location}}</p>
+        </div>
+        ${button('Join class', '{{meetingUrl}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'faculty_class_teacher_reminder',
+    subject: 'Teacher reminder: {{sessionTitle}} starts soon',
+    body: brandShell({
+      eyebrow: 'Faculty reminder',
+      title: '{{sessionTitle}} is coming up',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, this is a {{reminderLabel}} reminder for your scheduled class.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
+          <p style="margin:0 0 8px;color:#111827;font-weight:700">{{courseTitle}}</p>
+          <p style="margin:0;color:#475569">Batch: {{batchName}}</p>
+          <p style="margin:8px 0 0;color:#475569">Class time: {{startsAt}}</p>
+          <p style="margin:8px 0 0;color:#475569">Location: {{location}}</p>
+        </div>
+        ${button('Open class link', '{{meetingUrl}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'faculty_class_reminder',
+    subject: 'Reminder: {{sessionTitle}} starts soon',
+    body: brandShell({
+      eyebrow: 'Class reminder',
+      title: '{{sessionTitle}} starts soon',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}}, this is a {{reminderLabel}} reminder for your upcoming class in <strong>{{courseTitle}}</strong>.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:18px;margin:22px 0">
+          <p style="margin:0 0 8px;color:#111827;font-weight:700">{{batchName}}</p>
+          <p style="margin:0;color:#475569">Class time: {{startsAt}}</p>
+          <p style="margin:8px 0 0;color:#475569">Location: {{location}}</p>
+        </div>
+        ${button('Join class', '{{meetingUrl}}')}
+      `,
+    }),
+  },
+  {
+    templateName: 'notification_broadcast',
+    subject: '{{title}}',
+    body: brandShell({
+      eyebrow: 'Academy update',
+      title: '{{title}}',
+      content: `
+        <p style="font-size:16px;line-height:1.7;color:#475569">Hi {{name}},</p>
+        {{imageHtml}}
+        <p style="font-size:16px;line-height:1.7;color:#475569">{{message}}</p>
+        ${button('Open update', '{{actionUrl}}')}
       `,
     }),
   },

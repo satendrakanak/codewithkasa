@@ -7,6 +7,7 @@ import {
   Award,
   BookOpen,
   ClipboardCheck,
+  GraduationCap,
   LayoutDashboard,
   Loader,
   LogOut,
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSession } from "@/context/session-context";
 import { apiClient } from "@/lib/api/client";
+import { canAccessAdmin, canAccessFaculty } from "@/lib/access-control";
 import { getErrorMessage } from "@/lib/error-handler";
 import { getUserAvatarUrl } from "@/lib/user-avatar";
 
@@ -43,7 +45,7 @@ export const WebsiteNavUser = () => {
         asChild
         variant="ghost"
         aria-label="Sign in"
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:border-primary hover:bg-primary hover:text-primary-foreground"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background/90 p-0 text-foreground shadow-sm backdrop-blur transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/30 dark:hover:bg-white/10 dark:hover:text-white"
       >
         <Link href="/auth/sign-in">
           <User className="h-5 w-5" />
@@ -136,6 +138,20 @@ export const WebsiteNavUser = () => {
             icon={LayoutDashboard}
             label="Dashboard"
           />
+          {canAccessAdmin(user) ? (
+            <NavMenuItem
+              href="/admin/dashboard"
+              icon={LayoutDashboard}
+              label="Admin Dashboard"
+            />
+          ) : null}
+          {canAccessFaculty(user) ? (
+            <NavMenuItem
+              href="/faculty/dashboard"
+              icon={GraduationCap}
+              label="Faculty Dashboard"
+            />
+          ) : null}
           <NavMenuItem href="/profile" icon={User} label="Profile" />
           <NavMenuItem href="/my-courses" icon={BookOpen} label="My Courses" />
           <NavMenuItem href="/exams" icon={ClipboardCheck} label="Exams" />

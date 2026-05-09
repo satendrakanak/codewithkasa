@@ -12,10 +12,12 @@ import { getErrorMessage } from "@/lib/error-handler";
 import { settingsClientService } from "@/services/settings/settings.client";
 import {
   AwsStorageSettings,
+  BbbSettings,
   EmailSettings,
   PaymentGatewayAdmin,
   PaymentMode,
   PaymentProvider,
+  PushNotificationSettings,
   SiteSettings,
   SocialAuthProvider,
   SocialProvider,
@@ -24,11 +26,13 @@ import {
 import { toast } from "sonner";
 import {
   BadgeCheck,
+  BellRing,
   DatabaseZap,
   ImageIcon,
   Mail,
   Settings2,
   Shield,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MediaModal } from "@/components/media/media-modal";
@@ -64,24 +68,24 @@ const defaultGatewayForm: UpsertPaymentGatewayPayload = {
 };
 
 const defaultSiteSettings: SiteSettings = {
-  siteName: "Unitus Health Academy",
-  siteTagline: "A Unit of Ranfort Wellness",
+  siteName: "Code With Kasa",
+  siteTagline: "Coding tutorials for you",
   siteDescription:
-    "Practical wellness education for learners who want clarity, mentorship, and real-world application.",
-  logoUrl: "/assets/unitus-logo.png",
-  footerLogoUrl: "/assets/unitus-logo.png",
-  faviconUrl: "",
-  adminPanelName: "U",
-  adminPanelIconUrl: "",
-  supportEmail: "info@academy.com",
+    "Practical coding education for learners who want clarity, mentorship, and real-world application.",
+  logoUrl: "/assets/cwk-logo.png",
+  footerLogoUrl: "/assets/cwk-logo.png",
+  faviconUrl: "/favicon.png",
+  adminPanelName: "CWK",
+  adminPanelIconUrl: "/assets/pwa-icon-192.png",
+  supportEmail: "info@codewithkasa.com",
   supportPhone: "+91-9809-XXXXXX",
   supportAddress: "India",
   footerAbout:
-    "Practical wellness education for learners who want clarity, mentorship, and real-world application.",
-  footerCopyright: `© ${new Date().getFullYear()} Unitus. All Rights Reserved`,
+    "Practical coding education for learners who want clarity, mentorship, and real-world application.",
+  footerCopyright: `© ${new Date().getFullYear()} Code With Kasa. All Rights Reserved`,
   footerCtaEyebrow: "Start Your Learning Journey",
   footerCtaHeading:
-    "Build practical wellness expertise with a learning system that actually supports you.",
+    "Build practical coding expertise with a learning system that actually supports you.",
   footerCtaDescription:
     "Explore guided programs, thoughtful faculty, and a curriculum designed to help you learn clearly and apply with confidence.",
   footerPrimaryCtaLabel: "Explore Courses",
@@ -103,8 +107,8 @@ const defaultEmailSettings: EmailSettings = {
   smtpUser: "",
   smtpPassword: "",
   hasPassword: false,
-  fromName: "Unitus Academy",
-  fromEmail: "info@academy.com",
+  fromName: "Code With Kasa",
+  fromEmail: "info@codewithkasa.com",
   replyToEmail: "",
 };
 
@@ -115,6 +119,25 @@ const defaultAwsStorageSettings: AwsStorageSettings = {
   cloudfrontUrl: "",
   accessKeyId: "",
   accessKeySecret: "",
+};
+
+const defaultBbbSettings: BbbSettings = {
+  isEnabled: false,
+  apiUrl: "",
+  sharedSecret: "",
+  hasSharedSecret: false,
+  defaultRecord: false,
+  autoStartRecording: false,
+  allowStartStopRecording: true,
+  meetingExpireIfNoUserJoinedInMinutes: 60,
+};
+
+const defaultPushNotificationSettings: PushNotificationSettings = {
+  isEnabled: false,
+  subject: "",
+  publicKey: "",
+  privateKey: "",
+  hasPrivateKey: false,
 };
 
 const defaultSocialProviders: SocialAuthProvider[] = [
@@ -149,12 +172,16 @@ export function SiteSettingsDashboard({
   siteSettings,
   emailSettings,
   awsStorageSettings,
+  bbbSettings,
+  pushNotificationSettings,
   socialProviders,
 }: {
   gateways: PaymentGatewayAdmin[];
   siteSettings: SiteSettings | null;
   emailSettings: EmailSettings | null;
   awsStorageSettings: AwsStorageSettings | null;
+  bbbSettings: BbbSettings | null;
+  pushNotificationSettings: PushNotificationSettings | null;
   socialProviders: SocialAuthProvider[];
 }) {
   const router = useRouter();
@@ -170,6 +197,16 @@ export function SiteSettingsDashboard({
   const [awsForm, setAwsForm] = useState<AwsStorageSettings>({
     ...defaultAwsStorageSettings,
     ...(awsStorageSettings || {}),
+    accessKeyId: "",
+    accessKeySecret: "",
+  });
+  const [bbbForm, setBbbForm] = useState<BbbSettings>({
+    ...defaultBbbSettings,
+    ...(bbbSettings || {}),
+  });
+  const [pushForm, setPushForm] = useState<PushNotificationSettings>({
+    ...defaultPushNotificationSettings,
+    ...(pushNotificationSettings || {}),
   });
   const [socialForm, setSocialForm] = useState<SocialAuthProvider[]>(
     socialProviders.length ? socialProviders : defaultSocialProviders,
@@ -213,6 +250,20 @@ export function SiteSettingsDashboard({
     value: AwsStorageSettings[K],
   ) => {
     setAwsForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const updateBbbField = <K extends keyof BbbSettings>(
+    key: K,
+    value: BbbSettings[K],
+  ) => {
+    setBbbForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const updatePushField = <K extends keyof PushNotificationSettings>(
+    key: K,
+    value: PushNotificationSettings[K],
+  ) => {
+    setPushForm((current) => ({ ...current, [key]: value }));
   };
 
   const updateSocialField = (
@@ -317,14 +368,96 @@ export function SiteSettingsDashboard({
     event.preventDefault();
     startTransition(async () => {
       try {
+        const awsPayload = { ...awsForm };
+        Reflect.deleteProperty(awsPayload, "hasAccessKeySecret");
+        const { accessKeyId, accessKeySecret, ...rest } = awsPayload;
+
+        const payload = {
+          ...rest,
+          ...(accessKeyId?.trim() ? { accessKeyId: accessKeyId.trim() } : {}),
+          ...(accessKeySecret?.trim()
+            ? { accessKeySecret: accessKeySecret.trim() }
+            : {}),
+        };
+
         const response =
-          await settingsClientService.upsertAwsStorageSettings(awsForm);
+          await settingsClientService.upsertAwsStorageSettings(payload);
         setAwsForm({
           ...response.data,
           accessKeyId: "",
           accessKeySecret: "",
         });
         toast.success("AWS storage settings updated");
+        router.refresh();
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    });
+  };
+
+  const saveBbbSettings = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    startTransition(async () => {
+      try {
+        const bbbPayload = { ...bbbForm };
+        Reflect.deleteProperty(bbbPayload, "hasSharedSecret");
+        const { sharedSecret, ...rest } = bbbPayload;
+        const payload = {
+          ...rest,
+          ...(sharedSecret?.trim()
+            ? { sharedSecret: sharedSecret.trim() }
+            : {}),
+        };
+
+        const response = await settingsClientService.upsertBbbSettings(payload);
+        setBbbForm({
+          ...response.data,
+          sharedSecret: "",
+        });
+        toast.success("BigBlueButton settings updated");
+        router.refresh();
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    });
+  };
+
+  const savePushNotificationSettings = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    startTransition(async () => {
+      try {
+        const pushPayload = { ...pushForm };
+        Reflect.deleteProperty(pushPayload, "hasPrivateKey");
+        const { privateKey, ...rest } = pushPayload;
+        const payload = {
+          ...rest,
+          ...(privateKey?.trim() ? { privateKey: privateKey.trim() } : {}),
+        };
+
+        const response =
+          await settingsClientService.upsertPushNotificationSettings(payload);
+        setPushForm({
+          ...response.data,
+          privateKey: "",
+        });
+        toast.success("Push notification settings updated");
+        router.refresh();
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+      }
+    });
+  };
+
+  const generatePushNotificationKeys = () => {
+    startTransition(async () => {
+      try {
+        const response =
+          await settingsClientService.generatePushNotificationKeys();
+        setPushForm({
+          ...response.data,
+          privateKey: "",
+        });
+        toast.success("VAPID keys generated");
         router.refresh();
       } catch (error) {
         toast.error(getErrorMessage(error));
@@ -369,7 +502,7 @@ export function SiteSettingsDashboard({
       title="Site Settings"
       description="Manage brand assets, support details, SMTP delivery, social auth toggles, and payment gateways from one dashboard."
     >
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           icon={Settings2}
           label="Site identity"
@@ -393,6 +526,18 @@ export function SiteSettingsDashboard({
           label="Storage & checkout"
           value={activeGateway?.displayName || "No gateway"}
           meta={awsForm.bucketName || "AWS storage not configured"}
+        />
+        <StatCard
+          icon={Video}
+          label="Live classes"
+          value={bbbForm.isEnabled ? "BBB active" : "BBB off"}
+          meta={bbbForm.apiUrl || "BigBlueButton not configured"}
+        />
+        <StatCard
+          icon={BellRing}
+          label="Push alerts"
+          value={pushForm.isEnabled ? "Enabled" : "Off"}
+          meta={pushForm.publicKey ? "VAPID keys saved" : "Keys not generated"}
         />
       </div>
 
@@ -532,7 +677,7 @@ export function SiteSettingsDashboard({
                         onChange={(event) =>
                           updateSiteField("adminPanelName", event.target.value)
                         }
-                        placeholder="UHA"
+                        placeholder="CWK"
                       />
                     </Field>
                   </div>
@@ -806,6 +951,196 @@ export function SiteSettingsDashboard({
               <div className="flex justify-end">
                 <Button type="submit" disabled={isPending}>
                   {isPending ? "Saving..." : "Save email config"}
+                </Button>
+              </div>
+            </form>
+          </SettingsCard>
+
+          <SettingsCard
+            eyebrow="Live classes"
+            title="BigBlueButton configuration"
+            description="Store BBB API URL and shared secret encrypted in the database. Faculty and learners receive signed join links from the backend."
+          >
+            <form onSubmit={saveBbbSettings} className="space-y-4">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/6">
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    Enable BigBlueButton
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    When enabled, calendar classes can start and join BBB rooms.
+                  </p>
+                </div>
+                <Switch
+                  checked={bbbForm.isEnabled}
+                  onCheckedChange={(checked) =>
+                    updateBbbField("isEnabled", checked)
+                  }
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="BBB API URL">
+                  <Input
+                    placeholder="https://bbb.example.com/bigbluebutton/api"
+                    value={bbbForm.apiUrl}
+                    onChange={(event) =>
+                      updateBbbField("apiUrl", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field label="Shared secret">
+                  <Input
+                    type="password"
+                    placeholder={
+                      bbbForm.hasSharedSecret
+                        ? "Saved already, enter a new secret to rotate"
+                        : "Enter BBB shared secret"
+                    }
+                    value={bbbForm.sharedSecret || ""}
+                    onChange={(event) =>
+                      updateBbbField("sharedSecret", event.target.value)
+                    }
+                  />
+                </Field>
+                <Field label="Meeting expiry without users">
+                  <Input
+                    type="number"
+                    min="5"
+                    value={bbbForm.meetingExpireIfNoUserJoinedInMinutes}
+                    onChange={(event) =>
+                      updateBbbField(
+                        "meetingExpireIfNoUserJoinedInMinutes",
+                        Number(event.target.value),
+                      )
+                    }
+                  />
+                </Field>
+                <Field label="Allow recording controls">
+                  <div className="flex h-11 items-center rounded-xl border border-slate-200 px-3 dark:border-white/10 dark:bg-white/6">
+                    <Switch
+                      checked={bbbForm.allowStartStopRecording}
+                      onCheckedChange={(checked) =>
+                        updateBbbField("allowStartStopRecording", checked)
+                      }
+                    />
+                  </div>
+                </Field>
+                <Field label="Record meetings by default">
+                  <div className="flex h-11 items-center rounded-xl border border-slate-200 px-3 dark:border-white/10 dark:bg-white/6">
+                    <Switch
+                      checked={bbbForm.defaultRecord}
+                      onCheckedChange={(checked) =>
+                        updateBbbField("defaultRecord", checked)
+                      }
+                    />
+                  </div>
+                </Field>
+                <Field label="Auto-start recording">
+                  <div className="flex h-11 items-center rounded-xl border border-slate-200 px-3 dark:border-white/10 dark:bg-white/6">
+                    <Switch
+                      checked={bbbForm.autoStartRecording}
+                      onCheckedChange={(checked) =>
+                        updateBbbField("autoStartRecording", checked)
+                      }
+                    />
+                  </div>
+                </Field>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                Run <code>bbb-conf --secret</code> on your BBB server to get
+                the API URL and shared secret. The secret is encrypted before it
+                is stored.
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Saving..." : "Save BBB config"}
+                </Button>
+              </div>
+            </form>
+          </SettingsCard>
+
+          <SettingsCard
+            eyebrow="PWA"
+            title="Push notification configuration"
+            description="Enable browser push for class reminders, exam updates, and important learner alerts. VAPID private key is stored encrypted."
+          >
+            <form
+              onSubmit={savePushNotificationSettings}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/6">
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    Enable push notifications
+                  </p>
+                  <p className="text-sm text-slate-500 dark:text-slate-300">
+                    Users can subscribe from their notifications page once this
+                    is enabled.
+                  </p>
+                </div>
+                <Switch
+                  checked={pushForm.isEnabled}
+                  onCheckedChange={(checked) =>
+                    updatePushField("isEnabled", checked)
+                  }
+                />
+              </div>
+
+              <Field label="VAPID subject">
+                <Input
+                  placeholder="mailto:support@example.com"
+                  value={pushForm.subject}
+                  onChange={(event) =>
+                    updatePushField("subject", event.target.value)
+                  }
+                />
+              </Field>
+
+              <Field label="Public key">
+                <Textarea
+                  value={pushForm.publicKey}
+                  onChange={(event) =>
+                    updatePushField("publicKey", event.target.value)
+                  }
+                  placeholder="Generate keys or paste existing VAPID public key"
+                />
+              </Field>
+
+              <Field label="Private key">
+                <Input
+                  type="password"
+                  placeholder={
+                    pushForm.hasPrivateKey
+                      ? "Saved already, enter a new key to rotate"
+                      : "Generate keys or paste existing VAPID private key"
+                  }
+                  value={pushForm.privateKey || ""}
+                  onChange={(event) =>
+                    updatePushField("privateKey", event.target.value)
+                  }
+                />
+              </Field>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-white/10 dark:bg-white/6 dark:text-slate-300">
+                Production push needs HTTPS. Localhost works for testing in
+                Chrome/Edge, and iOS push only works after installing the PWA to
+                the home screen.
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={generatePushNotificationKeys}
+                >
+                  {isPending ? "Working..." : "Generate VAPID keys"}
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Saving..." : "Save push config"}
                 </Button>
               </div>
             </form>
@@ -1186,18 +1521,20 @@ function StatCard({
   meta: string;
 }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,18,32,0.96),rgba(17,27,46,0.98))]">
+    <div className="min-h-40 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(11,18,32,0.96),rgba(17,27,46,0.98))]">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--brand-700)] dark:text-[var(--brand-300)]">
+        <div className="min-w-0">
+          <p className="max-w-full text-xs font-semibold uppercase tracking-[0.18em] text-[var(--brand-700)] dark:text-[var(--brand-300)]">
             {label}
           </p>
-          <h3 className="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">
+          <h3 className="mt-3 break-words text-2xl font-semibold leading-tight text-slate-950 dark:text-white">
             {value}
           </h3>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-300">{meta}</p>
+          <p className="mt-2 break-words text-sm leading-6 text-slate-500 dark:text-slate-300">
+            {meta}
+          </p>
         </div>
-        <div className="rounded-2xl bg-[var(--brand-50)] p-3 text-[var(--brand-700)] dark:bg-[var(--brand-500)]/15 dark:text-[var(--brand-300)]">
+        <div className="shrink-0 rounded-2xl bg-[var(--brand-50)] p-3 text-[var(--brand-700)] dark:bg-[var(--brand-500)]/15 dark:text-[var(--brand-300)]">
           <Icon className="size-5" />
         </div>
       </div>

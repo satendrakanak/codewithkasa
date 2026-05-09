@@ -6,6 +6,16 @@ import { getSession } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/error-handler";
 import { userServerService } from "@/services/users/user.server";
 import { Course } from "@/types/course";
+import { facultyWorkspaceServer } from "@/services/faculty/faculty-workspace.server";
+import type { FacultyClassSession } from "@/types/faculty-workspace";
+import { UpcomingClasses } from "@/components/profile/upcoming-classes";
+import { getLearnerUpcomingSessions } from "@/lib/learner-class-sessions";
+import {
+  hasLiveClasses,
+  hasRecordedLearning,
+  isFacultyLedCourse,
+  isSelfLearningCourse,
+} from "@/lib/course-delivery";
 
 export default async function MyCoursesPage() {
   const session = await getSession();
@@ -13,13 +23,31 @@ export default async function MyCoursesPage() {
   if (!session) return null;
 
   let enrolledCourses: Course[] = [];
+  let upcomingClasses: FacultyClassSession[] = [];
 
   try {
-    const response = await userServerService.getEnrolledCourses(session.id);
-    enrolledCourses = response.data;
+    const [coursesResponse, classesResponse] = await Promise.all([
+      userServerService.getEnrolledCourses(session.id),
+      facultyWorkspaceServer.getMySessions(),
+    ]);
+    enrolledCourses = coursesResponse.data;
+    upcomingClasses = getLearnerUpcomingSessions(
+      classesResponse,
+      new Date().toISOString(),
+    );
   } catch (error: unknown) {
     throw new Error(getErrorMessage(error));
   }
+
+  const selfLearningCourses = enrolledCourses.filter((course) =>
+    isSelfLearningCourse(course),
+  );
+  const facultyLedCourses = enrolledCourses.filter((course) =>
+    isFacultyLedCourse(course),
+  );
+  const hybridCourses = enrolledCourses.filter(
+    (course) => hasRecordedLearning(course) && hasLiveClasses(course),
+  );
 
   return (
     <section className="min-h-[60vh] space-y-6">
@@ -49,6 +77,32 @@ export default async function MyCoursesPage() {
           ) : null}
         </div>
       </div>
+
+      {enrolledCourses.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-3">
+          <LearningModeStat
+            label="Self learning"
+            value={selfLearningCourses.length}
+            description="Recorded lectures and self-paced progress."
+          />
+          <LearningModeStat
+            label="Faculty led"
+            value={facultyLedCourses.length}
+            description="Live batches with classroom schedule."
+          />
+          <LearningModeStat
+            label="Hybrid"
+            value={hybridCourses.length}
+            description="Recorded learning plus live faculty sessions."
+          />
+        </div>
+      ) : null}
+
+      {upcomingClasses.length > 0 ? (
+        <div className="academy-card p-5 md:p-6">
+          <UpcomingClasses sessions={upcomingClasses} />
+        </div>
+      ) : null}
 
       {enrolledCourses.length === 0 ? (
         <div className="academy-card flex flex-col items-center justify-center border-dashed p-10 text-center">
@@ -81,5 +135,25 @@ export default async function MyCoursesPage() {
         </div>
       )}
     </section>
+  );
+}
+
+function LearningModeStat({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: number;
+  description: string;
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-5 shadow-sm">
+      <p className="text-3xl font-semibold text-card-foreground">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-card-foreground">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        {description}
+      </p>
+    </div>
   );
 }

@@ -13,6 +13,10 @@ import {
   Mail,
   ShieldCheck,
   MessageCircleHeart,
+  ClipboardCheck,
+  Video,
+  BellRing,
+  Award,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,7 +50,36 @@ export const sidebarData = {
       title: "Courses",
       url: "/admin/courses",
       icon: BookOpen,
+      requiredPermissions: [
+        "view_course",
+        "create_course",
+        "update_course",
+        "edit_assigned_course",
+      ],
+    },
+
+    {
+      title: "Exams",
+      url: "/admin/exams",
+      icon: ClipboardCheck,
       requiredPermissions: ["view_course", "create_course", "update_course"],
+      items: [
+        {
+          title: "Exams",
+          url: "/admin/exams",
+          requiredPermissions: ["view_course", "create_course", "update_course"],
+        },
+        {
+          title: "Questions",
+          url: "/admin/exams/questions",
+          requiredPermissions: ["view_course", "create_course", "update_course"],
+        },
+        {
+          title: "Categories",
+          url: "/admin/exams/categories",
+          requiredPermissions: ["view_course", "create_course", "update_course"],
+        },
+      ],
     },
 
     {
@@ -68,6 +101,32 @@ export const sidebarData = {
       url: "/admin/refunds",
       icon: HandCoins,
       requiredPermissions: ["view_order", "update_order"],
+    },
+
+    {
+      title: "Recordings",
+      url: "/admin/recordings",
+      icon: Video,
+      requiredPermissions: ["view_faculty_workspace"],
+    },
+
+    {
+      title: "Certificates",
+      url: "/admin/certificates",
+      icon: Award,
+      requiredPermissions: ["view_certificate"],
+    },
+
+    {
+      title: "Engagement",
+      url: "/admin/engagement",
+      icon: BellRing,
+      requiredPermissions: [
+        "manage_engagement",
+        "manage_schedulers",
+        "manage_notification_rules",
+        "send_broadcast_notification",
+      ],
     },
 
     {

@@ -24,7 +24,6 @@ export const CourseDetailsForm = ({ course }: CourseDetailsFormProps) => {
     mode: "onChange",
     defaultValues: {
       duration: course.duration ?? "",
-      mode: course.mode ?? "",
       experienceLevel: course.experienceLevel ?? "",
       language: course.language ?? "",
       certificate: course.certificate ?? "",
@@ -71,19 +70,6 @@ export const CourseDetailsForm = ({ course }: CourseDetailsFormProps) => {
               <Input
                 {...field}
                 placeholder="Duration"
-                className="h-11 w-full rounded-xl px-3 text-sm"
-              />
-            )}
-          />
-
-          {/* Mode */}
-          <Controller
-            name="mode"
-            control={form.control}
-            render={({ field }) => (
-              <Input
-                {...field}
-                placeholder="Mode"
                 className="h-11 w-full rounded-xl px-3 text-sm"
               />
             )}

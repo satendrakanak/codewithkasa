@@ -82,6 +82,25 @@ export type AwsStorageSettings = {
   hasAccessKeySecret?: boolean;
 };
 
+export type BbbSettings = {
+  isEnabled: boolean;
+  apiUrl: string;
+  sharedSecret: string;
+  hasSharedSecret?: boolean;
+  defaultRecord: boolean;
+  autoStartRecording: boolean;
+  allowStartStopRecording: boolean;
+  meetingExpireIfNoUserJoinedInMinutes: number;
+};
+
+export type PushNotificationSettings = {
+  isEnabled: boolean;
+  subject: string;
+  publicKey: string;
+  privateKey: string;
+  hasPrivateKey?: boolean;
+};
+
 export type SocialProvider = "GOOGLE" | "APPLE" | "META";
 
 export type SocialAuthProvider = {

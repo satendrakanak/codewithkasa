@@ -54,6 +54,7 @@ export type User = {
   avatar: FileType | null;
   coverImage: FileType | null;
   avatarUrl: string | null;
+  canRequestRefund: boolean;
 
   roles?: Role[];
 
@@ -84,6 +85,7 @@ export type UpdateUserPayload = {
   avatarId?: number;
   coverImageId?: number;
   roleIds?: number[];
+  canRequestRefund?: boolean;
 };
 
 export type UpdateProfilePayload = {
@@ -125,6 +127,8 @@ export type UsersQueryParams = {
   search?: string;
   roleId?: number;
   includeDeleted?: boolean;
+  startDate?: string;
+  endDate?: string;
 };
 
 export type ChangePasswordPayload = {
@@ -139,6 +143,42 @@ export type DashboardStats = {
   examsTaken: number;
   examsPassed: number;
   certificatesEarned: number;
+  learningSummary?: LearningSummary;
+};
+
+export type LearningCourseSummary = {
+  courseId: number;
+  title: string;
+  slug: string;
+  mode: string;
+  overallProgress: number;
+  recorded: {
+    enabled: boolean;
+    totalLectures: number;
+    completedLectures: number;
+    progress: number;
+  };
+  live: {
+    enabled: boolean;
+    completedClasses: number;
+    attendedClasses: number;
+    missedClasses: number;
+    upcomingClasses: number;
+    progress: number;
+  };
+};
+
+export type LearningSummary = {
+  totalCourses: number;
+  completedCourses: number;
+  averageProgress: number;
+  recordedCourses: number;
+  liveCourses: number;
+  upcomingLiveClasses: number;
+  completedLiveClasses: number;
+  attendedLiveClasses: number;
+  missedLiveClasses: number;
+  courses: LearningCourseSummary[];
 };
 
 export type WeeklyProgress = {

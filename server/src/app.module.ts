@@ -22,6 +22,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { MailModule } from './mail/mail.module';
 import { EmailTemplatesModule } from './email-templates/email-templates.module';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TagsModule } from './tags/tags.module';
 import { ChaptersModule } from './chapters/chapters.module';
 import { MediaFileMappingModule } from './common/media-file-mapping/media-file-mapping.module';
@@ -48,6 +49,10 @@ import { FacultyReviewsModule } from './faculty-reviews/faculty-reviews.module';
 import { ContactLeadsModule } from './contact-leads/contact-leads.module';
 import { CourseExamsModule } from './course-exams/course-exams.module';
 import { RefundsModule } from './refunds/refunds.module';
+import { ExamsModule } from './exams/exams.module';
+import { FacultyWorkspaceModule } from './faculty-workspace/faculty-workspace.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EngagementModule } from './engagement/engagement.module';
 
 const ENV = process.env.NODE_ENV;
 
@@ -78,13 +83,14 @@ const ENV = process.env.NODE_ENV;
     }),
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         connection: {
           host: configService.get<string>('appConfig.redisHost'),
           port: configService.get<number>('appConfig.redisPort'),
         },
       }),
     }),
+    ScheduleModule.forRoot(),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
     SlugModule,
@@ -117,6 +123,10 @@ const ENV = process.env.NODE_ENV;
     CartsModule,
     FacultyReviewsModule,
     ContactLeadsModule,
+    ExamsModule,
+    FacultyWorkspaceModule,
+    NotificationsModule,
+    EngagementModule,
     CourseExamsModule,
     RefundsModule,
   ],

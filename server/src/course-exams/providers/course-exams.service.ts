@@ -6,13 +6,26 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Certificate } from 'src/certificates/certificate.entity';
+import {
+  hasLiveClasses,
+  hasRecordedLearning,
+} from 'src/courses/constants/course-delivery-mode';
 import { Course } from 'src/courses/course.entity';
 import { Enrollment } from 'src/enrollments/enrollment.entity';
 import { Lecture } from 'src/lectures/lecture.entity';
+import { ClassAttendance } from 'src/faculty-workspace/class-attendance.entity';
+import { ClassSession } from 'src/faculty-workspace/class-session.entity';
+import { ClassSessionStatus } from 'src/faculty-workspace/enums/class-session-status.enum';
 import { UserProgres } from 'src/user-progress/user-progres.entity';
 import { User } from 'src/users/user.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
+import { DateRangeQueryDto } from 'src/common/dtos/date-range-query.dto';
+import { ExamAttempt } from 'src/exams/exam-attempt.entity';
+import { Exam } from 'src/exams/exam.entity';
+import { ExamAttemptStatus } from 'src/exams/enums/exam-attempt-status.enum';
+import { ExamStatus } from 'src/exams/enums/exam-status.enum';
 import { CourseExamAccessOverride } from '../course-exam-access-override.entity';
+import { CourseExamEmailProvider } from './course-exam-email.provider';
 import { UpsertCourseExamAccessOverrideDto } from '../dtos/upsert-course-exam-access-override.dto';
 import { SubmitCourseExamAttemptDto } from '../dtos/submit-course-exam-attempt.dto';
 import {
@@ -41,14 +54,45 @@ export class CourseExamsService {
     private readonly courseExamAccessOverrideRepository: Repository<CourseExamAccessOverride>,
     @InjectRepository(CourseExamAttempt)
     private readonly courseExamAttemptRepository: Repository<CourseExamAttempt>,
+    @InjectRepository(Exam)
+    private readonly examRepository: Repository<Exam>,
+    @InjectRepository(ExamAttempt)
+    private readonly examAttemptRepository: Repository<ExamAttempt>,
+    @InjectRepository(ClassSession)
+    private readonly classSessionRepository: Repository<ClassSession>,
+    @InjectRepository(ClassAttendance)
+    private readonly classAttendanceRepository: Repository<ClassAttendance>,
+    private readonly courseExamEmailProvider: CourseExamEmailProvider,
   ) {}
 
-  async getMyHistory(userId: number) {
-    const attempts = await this.courseExamAttemptRepository.find({
-      where: { user: { id: userId } },
-      relations: ['course'],
-      order: { submittedAt: 'DESC', createdAt: 'DESC' },
-    });
+  async getMyHistory(userId: number, query?: DateRangeQueryDto) {
+    const attemptsQuery = this.courseExamAttemptRepository
+      .createQueryBuilder('attempt')
+      .leftJoinAndSelect('attempt.course', 'course')
+      .leftJoin('attempt.user', 'user')
+      .where('user.id = :userId', { userId })
+      .orderBy('attempt.submittedAt', 'DESC')
+      .addOrderBy('attempt.createdAt', 'DESC');
+
+    if (query?.startDate) {
+      attemptsQuery.andWhere(
+        'COALESCE(attempt.submittedAt, attempt.createdAt) >= :startDate',
+        {
+          startDate: query.startDate,
+        },
+      );
+    }
+
+    if (query?.endDate) {
+      attemptsQuery.andWhere(
+        'COALESCE(attempt.submittedAt, attempt.createdAt) <= :endDate',
+        {
+          endDate: query.endDate,
+        },
+      );
+    }
+
+    const attempts = await attemptsQuery.getMany();
 
     const grouped = new Map<
       number,
@@ -99,22 +143,68 @@ export class CourseExamsService {
   }
 
   async getAdminOverview() {
-    const [attempts, certificatesIssued] = await Promise.all([
+    const [attempts, advancedAttempts, certificatesIssued] = await Promise.all([
       this.courseExamAttemptRepository.find({
+        relations: ['course', 'user'],
+        order: { submittedAt: 'DESC', createdAt: 'DESC' },
+      }),
+      this.examAttemptRepository.find({
+        where: { status: Not(ExamAttemptStatus.InProgress) },
         relations: ['course', 'user'],
         order: { submittedAt: 'DESC', createdAt: 'DESC' },
       }),
       this.certificateRepository.count(),
     ]);
 
-    const totalAttempts = attempts.length;
+    const normalizedAttempts = [
+      ...attempts.map((attempt) => ({
+        id: attempt.id,
+        source: 'legacy',
+        learnerName:
+          `${attempt.user?.firstName || ''} ${attempt.user?.lastName || ''}`.trim() ||
+          attempt.user?.email ||
+          'Learner',
+        courseId: attempt.course.id,
+        courseTitle: attempt.course?.title || 'Course',
+        score: attempt.score,
+        maxScore: attempt.maxScore,
+        percentage: Number(attempt.percentage || 0),
+        passed: attempt.passed,
+        submittedAt: attempt.submittedAt,
+        createdAt: attempt.createdAt,
+      })),
+      ...advancedAttempts.map((attempt) => ({
+        id: attempt.id,
+        source: 'advanced',
+        learnerName:
+          `${attempt.user?.firstName || ''} ${attempt.user?.lastName || ''}`.trim() ||
+          attempt.user?.email ||
+          'Learner',
+        courseId: attempt.course?.id ?? 0,
+        courseTitle: attempt.course?.title || 'Course',
+        score: Number(attempt.score),
+        maxScore: Number(attempt.maxScore),
+        percentage: Number(attempt.percentage || 0),
+        passed: attempt.passed,
+        submittedAt: attempt.submittedAt,
+        createdAt: attempt.createdAt,
+      })),
+    ].sort((left, right) => {
+      const leftDate = new Date(left.submittedAt || left.createdAt || 0).getTime();
+      const rightDate = new Date(right.submittedAt || right.createdAt || 0).getTime();
+      return rightDate - leftDate;
+    });
+
+    const totalAttempts = normalizedAttempts.length;
     const uniqueLearners = new Set(
-      attempts.map((attempt) => attempt.user?.id).filter(Boolean),
+      [...attempts, ...advancedAttempts]
+        .map((attempt) => attempt.user?.id)
+        .filter(Boolean),
     ).size;
-    const passedAttempts = attempts.filter((attempt) => attempt.passed).length;
+    const passedAttempts = normalizedAttempts.filter((attempt) => attempt.passed).length;
     const averageScore = totalAttempts
       ? Math.round(
-          attempts.reduce(
+          normalizedAttempts.reduce(
             (sum, attempt) => sum + Number(attempt.percentage || 0),
             0,
           ) / totalAttempts,
@@ -135,10 +225,11 @@ export class CourseExamsService {
       }
     >();
 
-    for (const attempt of attempts) {
-      const existing = courseMap.get(attempt.course.id) || {
-        courseId: attempt.course.id,
-        courseTitle: attempt.course.title,
+    for (const attempt of normalizedAttempts) {
+      if (!attempt.courseId) continue;
+      const existing = courseMap.get(attempt.courseId) || {
+        courseId: attempt.courseId,
+        courseTitle: attempt.courseTitle,
         attempts: 0,
         passCount: 0,
         totalPercentage: 0,
@@ -147,7 +238,7 @@ export class CourseExamsService {
       existing.attempts += 1;
       existing.passCount += attempt.passed ? 1 : 0;
       existing.totalPercentage += Number(attempt.percentage || 0);
-      courseMap.set(attempt.course.id, existing);
+      courseMap.set(attempt.courseId, existing);
     }
 
     return {
@@ -157,13 +248,11 @@ export class CourseExamsService {
       certificatesIssued,
       averageScore,
       passRate,
-      recentAttempts: attempts.slice(0, 6).map((attempt) => ({
+      recentAttempts: normalizedAttempts.slice(0, 6).map((attempt) => ({
         id: attempt.id,
-        learnerName:
-          `${attempt.user?.firstName || ''} ${attempt.user?.lastName || ''}`.trim() ||
-          attempt.user?.email ||
-          'Learner',
-        courseTitle: attempt.course?.title || 'Course',
+        source: attempt.source,
+        learnerName: attempt.learnerName,
+        courseTitle: attempt.courseTitle,
         score: attempt.score,
         maxScore: attempt.maxScore,
         percentage: Number(attempt.percentage || 0),
@@ -199,39 +288,81 @@ export class CourseExamsService {
       overrides.map((override) => [override.course.id, override]),
     );
 
+    const courseIds = enrollments
+      .map((enrollment) => enrollment.course?.id)
+      .filter(Boolean) as number[];
+    const advancedExamMap = await this.getPublishedAdvancedExamMap(courseIds);
+
     const rows = await Promise.all(
       enrollments
-        .filter((enrollment) => enrollment.course?.exam?.questions?.length)
+        .filter((enrollment) => {
+          const course = enrollment.course;
+          return (
+            Boolean(course?.exam?.questions?.length) ||
+            advancedExamMap.has(course.id)
+          );
+        })
         .map(async (enrollment) => {
           const course = enrollment.course;
           const override = overrideMap.get(course.id);
-          const attemptsUsed = await this.courseExamAttemptRepository.count({
-            where: {
-              user: { id: userId },
-              course: { id: course.id },
-            },
-          });
-          const passed = await this.courseExamAttemptRepository.exists({
-            where: {
-              user: { id: userId },
-              course: { id: course.id },
-              passed: true,
-            },
-          });
-          const baseAttempts = Number(course.exam?.maxAttempts || 0);
+          const advancedExam = advancedExamMap.get(course.id);
+          const attemptsUsed = advancedExam
+            ? await this.examAttemptRepository.count({
+                where: {
+                  user: { id: userId },
+                  course: { id: course.id },
+                  exam: { id: advancedExam.id },
+                  status: Not(ExamAttemptStatus.InProgress),
+                },
+              })
+            : await this.courseExamAttemptRepository.count({
+                where: {
+                  user: { id: userId },
+                  course: { id: course.id },
+                },
+              });
+          const passed = advancedExam
+            ? await this.examAttemptRepository.exists({
+                where: {
+                  user: { id: userId },
+                  course: { id: course.id },
+                  exam: { id: advancedExam.id },
+                  passed: true,
+                },
+              })
+            : await this.courseExamAttemptRepository.exists({
+                where: {
+                  user: { id: userId },
+                  course: { id: course.id },
+                  passed: true,
+                },
+              });
+          const baseAttempts = advancedExam
+            ? advancedExam.attemptLimit === null
+              ? null
+              : Number(advancedExam.attemptLimit || 0)
+            : Number(course.exam?.maxAttempts || 0);
           const extraAttempts = Number(override?.extraAttempts || 0);
-          const effectiveAttempts = baseAttempts + extraAttempts;
+          const effectiveAttempts =
+            baseAttempts === null ? null : baseAttempts + extraAttempts;
 
           return {
             courseId: course.id,
             courseTitle: course.title,
             courseSlug: course.slug,
+            examMode: advancedExam ? 'advanced' : 'legacy',
             baseAttempts,
             extraAttempts,
             effectiveAttempts,
             attemptsUsed,
-            remainingAttempts: Math.max(effectiveAttempts - attemptsUsed, 0),
+            remainingAttempts:
+              effectiveAttempts === null
+                ? null
+                : Math.max(effectiveAttempts - attemptsUsed, 0),
             passed,
+            bypassAttendanceRequirement: Boolean(
+              override?.bypassAttendanceRequirement,
+            ),
             note: override?.note || '',
           };
         }),
@@ -252,7 +383,9 @@ export class CourseExamsService {
       throw new NotFoundException('Course not found');
     }
 
-    if (!course.exam?.questions?.length) {
+    const hasAdvancedExam = await this.hasPublishedAdvancedExam(dto.courseId);
+
+    if (!course.exam?.questions?.length && !hasAdvancedExam) {
       throw new BadRequestException('Selected course does not have a final exam');
     }
 
@@ -277,10 +410,55 @@ export class CourseExamsService {
     }
 
     override.extraAttempts = dto.extraAttempts;
+    override.bypassAttendanceRequirement = Boolean(
+      dto.bypassAttendanceRequirement,
+    );
     override.note = dto.note?.trim() || null;
 
     await this.courseExamAccessOverrideRepository.save(override);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (user) {
+      this.courseExamEmailProvider.sendAttemptsExtendedSafely(
+        user,
+        course,
+        dto.extraAttempts,
+      );
+    }
     return this.getUserAccessOverview(userId);
+  }
+
+  private async getPublishedAdvancedExamMap(courseIds: number[]) {
+    if (!courseIds.length) {
+      return new Map<number, Exam>();
+    }
+
+    const exams = await this.examRepository
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.courses', 'course')
+      .where('course.id IN (:...courseIds)', { courseIds })
+      .andWhere('exam.status = :status', { status: ExamStatus.Published })
+      .orderBy('exam.createdAt', 'DESC')
+      .getMany();
+
+    const map = new Map<number, Exam>();
+    for (const exam of exams) {
+      for (const course of exam.courses ?? []) {
+        if (!map.has(course.id)) {
+          map.set(course.id, exam);
+        }
+      }
+    }
+
+    return map;
+  }
+
+  async hasPublishedAdvancedExam(courseId: number) {
+    return this.examRepository
+      .createQueryBuilder('exam')
+      .leftJoin('exam.courses', 'course')
+      .where('course.id = :courseId', { courseId })
+      .andWhere('exam.status = :status', { status: ExamStatus.Published })
+      .getExists();
   }
 
   async getForLearner(courseId: number, userId: number) {
@@ -291,7 +469,7 @@ export class CourseExamsService {
       where: { course: { id: courseId }, user: { id: userId } },
       order: { attemptNumber: 'DESC', createdAt: 'DESC' },
     });
-    const unlockState = await this.getUnlockState(courseId, userId);
+    const unlockState = await this.getUnlockState(course, userId);
 
     const exam = course.exam!;
     const latestAttempt = attempts[0] ? this.mapAttempt(attempts[0]) : null;
@@ -329,7 +507,7 @@ export class CourseExamsService {
     await this.ensureEnrolled(courseId, userId);
 
     const exam = course.exam!;
-    const unlockState = await this.getUnlockState(courseId, userId);
+    const unlockState = await this.getUnlockState(course, userId);
 
     if (!exam.isPublished) {
       throw new ForbiddenException('Exam is not published yet');
@@ -464,11 +642,13 @@ export class CourseExamsService {
       }),
     );
 
+    this.courseExamEmailProvider.sendLegacyAttemptSubmittedSafely(attempt);
+
     return this.mapAttempt(attempt);
   }
 
   async hasPassedExam(userId: number, courseId: number) {
-    const attempt = await this.courseExamAttemptRepository.findOne({
+    const legacyAttempt = await this.courseExamAttemptRepository.findOne({
       where: {
         user: { id: userId },
         course: { id: courseId },
@@ -477,7 +657,17 @@ export class CourseExamsService {
       order: { attemptNumber: 'DESC' },
     });
 
-    return !!attempt;
+    if (legacyAttempt) {
+      return true;
+    }
+
+    return this.examAttemptRepository.exists({
+      where: {
+        user: { id: userId },
+        course: { id: courseId },
+        passed: true,
+      },
+    });
   }
 
   private async ensureCourseWithExam(courseId: number) {
@@ -527,7 +717,44 @@ export class CourseExamsService {
     };
   }
 
-  private async getUnlockState(courseId: number, userId: number) {
+  private async getUnlockState(course: Course, userId: number) {
+    const override = await this.courseExamAccessOverrideRepository.findOne({
+      where: { user: { id: userId }, course: { id: course.id } },
+    });
+    const checks: Array<{
+      unlocked: boolean;
+      progress: number;
+      message: string;
+    }> = [];
+
+    if (hasRecordedLearning(course.mode)) {
+      checks.push(await this.getLectureUnlockState(course.id, userId));
+    }
+
+    if (hasLiveClasses(course.mode)) {
+      checks.push(
+        await this.getLiveClassUnlockState(
+          course,
+          userId,
+          Boolean(override?.bypassAttendanceRequirement),
+        ),
+      );
+    }
+
+    if (!checks.length) {
+      checks.push(await this.getLectureUnlockState(course.id, userId));
+    }
+
+    const lockedCheck = checks.find((check) => !check.unlocked);
+
+    return {
+      isUnlocked: !lockedCheck,
+      progress: Math.min(...checks.map((check) => check.progress)),
+      message: lockedCheck?.message ?? 'Final exam is now unlocked.',
+    };
+  }
+
+  private async getLectureUnlockState(courseId: number, userId: number) {
     const totalLectures = await this.lectureRepository.count({
       where: {
         isPublished: true,
@@ -540,7 +767,7 @@ export class CourseExamsService {
 
     if (!totalLectures) {
       return {
-        isUnlocked: false,
+        unlocked: false,
         progress: 0,
         message: 'Final exam will unlock once course lectures are published.',
       };
@@ -562,12 +789,117 @@ export class CourseExamsService {
     );
 
     return {
-      isUnlocked: completedLectures >= totalLectures,
+      unlocked: completedLectures >= totalLectures,
       progress,
       message:
         completedLectures >= totalLectures
-          ? 'Final exam is now unlocked.'
+          ? 'Recorded course content is complete.'
           : `Complete all course lectures before attempting the final exam. Current progress: ${progress}%.`,
+    };
+  }
+
+  private async getLiveClassUnlockState(
+    course: Course,
+    userId: number,
+    bypassAttendanceRequirement = false,
+  ) {
+    if (bypassAttendanceRequirement) {
+      return {
+        unlocked: true,
+        progress: 100,
+        message: 'Live class attendance requirement was waived for this learner.',
+      };
+    }
+
+    const requirementType =
+      course.liveClassAttendanceRequirementType || 'percentage';
+    const requirementValue =
+      Number(course.liveClassAttendanceRequirementValue || 0) ||
+      (requirementType === 'percentage' ? 75 : 1);
+
+    if (requirementType === 'none') {
+      return {
+        unlocked: true,
+        progress: 100,
+        message: 'Live class attendance is not required for this exam.',
+      };
+    }
+
+    const courseId = course.id;
+    const completedSessions = await this.classSessionRepository
+      .createQueryBuilder('session')
+      .innerJoin('session.batch', 'batch')
+      .innerJoin('batch.students', 'batchStudent')
+      .innerJoin('batchStudent.student', 'student')
+      .where('session.courseId = :courseId', { courseId })
+      .andWhere('student.id = :userId', { userId })
+      .andWhere('batchStudent.status = :studentStatus', {
+        studentStatus: 'active',
+      })
+      .andWhere('session.status != :cancelled', {
+        cancelled: ClassSessionStatus.Cancelled,
+      })
+      .andWhere('session.endsAt <= :now', { now: new Date() })
+      .getCount();
+
+    if (!completedSessions) {
+      return {
+        unlocked: false,
+        progress: 0,
+        message:
+          'Final exam will unlock once your faculty-led classes are completed and attendance is recorded.',
+      };
+    }
+
+    const attendedSessions = await this.classAttendanceRepository
+      .createQueryBuilder('attendance')
+      .innerJoin('attendance.session', 'session')
+      .innerJoin('session.batch', 'batch')
+      .innerJoin('batch.students', 'batchStudent')
+      .innerJoin('batchStudent.student', 'student')
+      .where('session.courseId = :courseId', { courseId })
+      .andWhere('student.id = :userId', { userId })
+      .andWhere('attendance.userId = :userId', { userId })
+      .andWhere('attendance.role = :role', { role: 'learner' })
+      .andWhere('batchStudent.status = :studentStatus', {
+        studentStatus: 'active',
+      })
+      .andWhere('session.status != :cancelled', {
+        cancelled: ClassSessionStatus.Cancelled,
+      })
+      .andWhere('session.endsAt <= :now', { now: new Date() })
+      .getCount();
+
+    const requiredAttendance =
+      requirementType === 'all'
+        ? completedSessions
+        : requirementType === 'fixed'
+          ? requirementValue
+          : Math.ceil((completedSessions * requirementValue) / 100);
+    const progressDenominator =
+      requirementType === 'fixed' ? requiredAttendance : completedSessions;
+    const progress = Math.min(
+      100,
+      Math.round((attendedSessions / Math.max(progressDenominator, 1)) * 100),
+    );
+    const remaining = Math.max(requiredAttendance - attendedSessions, 0);
+    const attendancePercent = Math.round(
+      (attendedSessions / completedSessions) * 100,
+    );
+    const policyMessage =
+      requirementType === 'all'
+        ? 'all completed live classes'
+        : requirementType === 'fixed'
+          ? `${requiredAttendance} live class${requiredAttendance === 1 ? '' : 'es'}`
+          : `${requirementValue}% live class attendance`;
+
+    return {
+      unlocked: remaining === 0,
+      progress,
+      message:
+        remaining === 0
+          ? 'Live class attendance requirement is complete.'
+          : `Attend ${remaining} more live class${remaining === 1 ? '' : 'es'} before attempting the final exam. Required: ${policyMessage}. Current: ${attendedSessions}/${completedSessions} completed classes attended (${attendancePercent}%).`,
     };
   }
 

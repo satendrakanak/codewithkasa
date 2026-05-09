@@ -2,8 +2,10 @@ import { apiClient, withAuthRetry } from "@/lib/api/client";
 import { ApiResponse } from "@/types/api";
 import {
   AwsStorageSettings,
+  BbbSettings,
   EmailSettings,
   PaymentGatewayAdmin,
+  PushNotificationSettings,
   PublicSettingsBundle,
   PublicSocialProvider,
   SiteSettings,
@@ -67,6 +69,38 @@ export const settingsClientService = {
       apiClient.post<ApiResponse<AwsStorageSettings>>(
         "/api/settings/aws-storage",
         data,
+      ),
+    ),
+
+  getBbbSettings: () =>
+    withAuthRetry(() =>
+      apiClient.get<ApiResponse<BbbSettings>>("/api/settings/bbb"),
+    ),
+
+  upsertBbbSettings: (data: Partial<BbbSettings>) =>
+    withAuthRetry(() =>
+      apiClient.post<ApiResponse<BbbSettings>>("/api/settings/bbb", data),
+    ),
+
+  getPushNotificationSettings: () =>
+    withAuthRetry(() =>
+      apiClient.get<ApiResponse<PushNotificationSettings>>(
+        "/api/settings/push-notifications",
+      ),
+    ),
+
+  upsertPushNotificationSettings: (data: Partial<PushNotificationSettings>) =>
+    withAuthRetry(() =>
+      apiClient.post<ApiResponse<PushNotificationSettings>>(
+        "/api/settings/push-notifications",
+        data,
+      ),
+    ),
+
+  generatePushNotificationKeys: () =>
+    withAuthRetry(() =>
+      apiClient.post<ApiResponse<PushNotificationSettings>>(
+        "/api/settings/push-notifications/generate-keys",
       ),
     ),
 

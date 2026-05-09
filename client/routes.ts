@@ -52,7 +52,14 @@ export const authRoutes = [
 export const adminRoutePrefix = "/admin";
 
 /**
+ * The prefix for Faculty Dashboard routes.
+ * Faculty routes are private and then role-gated in the app shell.
+ * @type {string}
+ */
+export const facultyRoutePrefix = "/faculty";
+
+/**
  * The default redirect path after logging in
  * @type {string}
  */
-export const DEFAULT_LOGIN_REDIRECT = "/admin/dashboard";
+export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
